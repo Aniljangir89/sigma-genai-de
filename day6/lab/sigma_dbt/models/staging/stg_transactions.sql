@@ -1,5 +1,3 @@
--- models/staging/stg_fact_transactions.sql
-
 WITH raw_transactions AS (
     SELECT 
         transaction_id,
@@ -33,13 +31,11 @@ SELECT * FROM cleaned_transactions
 ```
 
 ```yaml
-# models/staging/schema.yml
-
 version: 2
 
 models:
   - name: stg_fact_transactions
-    description: "Staging model for fact_transactions. Cleans and prepares data for further transformation."
+    description: "Staging model for fact_transactions table. Cleans and prepares data for further transformation."
     columns:
       - name: transaction_id
         description: "Unique identifier for each transaction."
@@ -51,7 +47,7 @@ models:
         tests:
           - not_null
       - name: status
-        description: "Status of the transaction: COMPLETED, FAILED, PENDING."
+        description: "Status of the transaction (COMPLETED, FAILED, PENDING)."
         tests:
           - not_null
           - accepted_values:
@@ -61,21 +57,21 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_merchant')
+              to: sigma_analytics.dim_merchant
               field: merchant_id
       - name: customer_id
         description: "Unique identifier for the customer."
         tests:
           - not_null
           - relationships:
-              to: ref('dim_customer')
+              to: sigma_analytics.dim_customer
               field: customer_id
       - name: transaction_date
         description: "Date of the transaction."
         tests:
           - not_null
       - name: payment_method
-        description: "Payment method used for the transaction: CREDIT_CARD, DEBIT_CARD, UPI."
+        description: "Payment method used for the transaction (CREDIT_CARD, DEBIT_CARD, UPI)."
         tests:
           - not_null
           - accepted_values:
