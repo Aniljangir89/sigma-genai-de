@@ -1,0 +1,43 @@
+version: 2
+
+mart_fact_transactions:
+  description: "Mart for transaction data with business metrics"
+  columns:
+    - name: transaction_id
+      description: "Unique identifier for each transaction"
+    - name: amount
+      description: "Amount of the transaction in USD"
+    - name: status
+      description: "Status of the transaction: COMPLETED, FAILED, PENDING"
+    - name: merchant_id
+      description: "Foreign key to dim_merchant"
+    - name: customer_id
+      description: "Foreign key to dim_customer"
+    - name: transaction_date
+      description: "Date of the transaction"
+    - name: payment_method
+      description: "Payment method used for the transaction"
+    - name: merchant_name
+      description: "Name of the merchant from dim_merchant"
+    - name: total_revenue
+      description: "Total revenue from completed transactions"
+    - name: failure_rate_pct
+      description: "Failure rate of transactions as a percentage"
+  tests:
+    - not_null:
+        column_name: merchant_id
+    - generic_test:
+        name: failure_rate_pct_between_0_and_100
+        severity: error
+        expression: "(failure_rate_pct >= 0) AND (failure_rate_pct <= 100)"
+        description: "Ensure failure rate percentage is between 0 and 100"
+    - generic_test:
+        name: total_revenue_gte_0
+        severity: error
+        expression: "total_revenue >= 0"
+        description: "Ensure total revenue is non-negative"
+    - generic_test:
+        name: no_cancelled_status
+        severity: error
+        expression: "COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) = 0"
+        description: "Ensure there are no transactions with status 'CANCELLED'"
