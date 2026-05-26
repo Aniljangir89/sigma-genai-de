@@ -35,7 +35,8 @@ OUTPUT:
   pipeline_brain/generated_pipeline.py   <- the PySpark code
   pipeline_brain/generation_report.json  <- model metadata
 
-IMPORTANT: SPEND 5 MINUTES READING THIS FILE. YOU HAVE A QUIZ ON IT.
+IMPORTANT: SPEND 5 MINUTES READING TH
+IS FILE. YOU HAVE A QUIZ ON IT.
 ═══════════════════════════════════════════════════════════════
 """
 

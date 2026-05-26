@@ -136,6 +136,7 @@ SCHEMA_SILVER = {
     "quality_flag":        "string",   # CLEAN or UNMATCHED
     "ingestion_timestamp": "timestamp",
     "pipeline_run_id":     "string",
+    "refund_flag":         "boolean",  # can transaction be refunded?
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
