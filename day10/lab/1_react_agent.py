@@ -54,7 +54,7 @@ from datetime import datetime
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-try:
+try: 
     import boto3
 except ImportError:
     print("[ERROR] Run: pip install boto3")

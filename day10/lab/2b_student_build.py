@@ -1,47 +1,11 @@
-"""
-==============================================================================
-DAY 10 — LAB 2 STUDENT BUILD TASK
-Build a 2-node LangGraph from scratch
-==============================================================================
-
-You just ran a 3-node LangGraph in 2_langgraph_sql_agent.py.
-Now you build a smaller one yourself.
-
-THE GRAPH:
-  Every NL2SQL system needs a safety layer.
-  A "SELECT *" on a 4M-row table kills the warehouse.
-  You are building that safety layer.
-
-  Input SQL
-      ↓
-  sql_checker_node   → checks if SQL has a WHERE clause (no LLM needed)
-      ↓
-  (safe?)   → safe_executor_node  → runs the SQL  → result
-  (unsafe?) → safe_executor_node  → "BLOCKED: ..." → result
-
-RULES:
-  - Do NOT copy code from 2_langgraph_sql_agent.py
-  - Fill in every  pass  below with your own code
-  - Run this file: python 2b_student_build.py
-  - Both test cases must pass before you show the trainer
-
-SUCCESS CRITERION:
-  ✅ SAFE test   → prints actual data rows from DuckDB
-  ❌ UNSAFE test → prints "BLOCKED: No WHERE clause..."
-==============================================================================
-"""
-
 import os, duckdb
 from typing import TypedDict
 from langgraph.graph import StateGraph, END
 
+# Ensure the DB path is correctly set
 DB_PATH = os.path.join(os.path.dirname(__file__), "sigma_platform.duckdb")
 
-
 # ── STEP 1: Define the shared state ───────────────────────────────────────────
-# Every node reads from and writes to this TypedDict.
-# Nothing moves between nodes except through this state object.
-
 class CheckerState(TypedDict):
     sql          : str    # the SQL query to check
     is_safe      : bool   # True if the SQL has a WHERE clause
@@ -50,88 +14,60 @@ class CheckerState(TypedDict):
 
 
 # ── STEP 2: sql_checker_node ──────────────────────────────────────────────────
-# No LLM. No Bedrock. Pure Python logic.
-# Check if "WHERE" appears anywhere in the SQL (case-insensitive).
-# Return ONLY the fields you are setting — LangGraph merges the rest.
-
 def sql_checker_node(state: CheckerState) -> dict:
-    """
-    Check the SQL for a WHERE clause.
-    Return: {"is_safe": bool, "check_reason": str}
-    ~4 lines of code.
-    """
-    pass  # ← YOUR CODE HERE
+    """Check the SQL for a WHERE clause."""
+    is_safe = "WHERE" in state["sql"].upper()
+    reason = "Safe: WHERE clause found." if is_safe else "Unsafe: No WHERE clause found."
+    return {"is_safe": is_safe, "check_reason": reason}
 
 
 # ── STEP 3: safe_executor_node ────────────────────────────────────────────────
-# This node handles BOTH the safe and blocked paths.
-# If safe: run the SQL against DuckDB and return the result.
-# If not:  return a blocked message — do NOT run the SQL.
-
 def safe_executor_node(state: CheckerState) -> dict:
-    """
-    If state["is_safe"]:
-        connect to DuckDB (read_only=True), run state["sql"], return result as string
-    If not state["is_safe"]:
+    """Executes SQL if safe, otherwise returns blocked message."""
+    if state["is_safe"]:
+        try:
+            with duckdb.connect(DB_PATH, read_only=True) as con:
+                res = con.execute(state["sql"]).fetchall()
+                return {"result": str(res)}
+        except Exception as e:
+            return {"result": f"ERROR: {str(e)}"}
+    else:
         return {"result": "BLOCKED: " + state["check_reason"]}
-    ~10 lines of code.
-    """
-    pass  # ← YOUR CODE HERE
 
 
 # ── STEP 4: Routing function ──────────────────────────────────────────────────
-# This is NOT a node — it is the decision function for add_conditional_edges.
-# LangGraph calls this AFTER sql_checker_node runs.
-# The string you return must match a key in the routing dict (Step 5).
-
 def route_by_safety(state: CheckerState) -> str:
-    """
-    Return "execute" if state["is_safe"] is True.
-    Return "blocked" if state["is_safe"] is False.
-    1 line of code.
-    """
-    pass  # ← YOUR CODE HERE
+    """Return the next node based on safety status."""
+    return "execute" if state["is_safe"] else "blocked"
 
 
 # ── STEP 5: Build and wire the graph ─────────────────────────────────────────
-# This is where you assemble the graph.
-# Pattern — refer to build_graph() in 2_langgraph_sql_agent.py if stuck on syntax.
-# Do NOT copy it — understand each line, then write your own.
-
 def build_checker_graph():
     g = StateGraph(CheckerState)
 
     # Add nodes
-    # g.add_node("check",   ???)
-    # g.add_node("execute", ???)   # safe path
-    # g.add_node("blocked", ???)   # unsafe path (same function, different node name)
-    pass  # ← replace this pass and uncomment the add_node lines
+    g.add_node("check", sql_checker_node)
+    g.add_node("execute", safe_executor_node)
+    g.add_node("blocked", safe_executor_node)
 
-    # Set the entry point (first node to run)
-    # g.set_entry_point("???")
-    pass  # ← uncomment and complete
+    # Set the entry point
+    g.set_entry_point("check")
 
-    # Add conditional edges FROM "check" node
-    # After sql_checker_node runs, LangGraph calls route_by_safety(state)
-    # and follows the edge whose key matches the returned string.
-    # g.add_conditional_edges(
-    #     "check",
-    #     route_by_safety,
-    #     {"execute": "execute", "blocked": "blocked"}
-    # )
-    pass  # ← uncomment and complete
+    # Add conditional edges
+    g.add_conditional_edges(
+        "check",
+        route_by_safety,
+        {"execute": "execute", "blocked": "blocked"}
+    )
 
     # Both paths end at END
-    # g.add_edge("execute", END)
-    # g.add_edge("blocked", END)
-    pass  # ← uncomment and complete
+    g.add_edge("execute", END)
+    g.add_edge("blocked", END)
 
     return g.compile()
 
 
 # ── STEP 6: Run the tests ─────────────────────────────────────────────────────
-# Do not modify this block. Just make Steps 1–5 work and this will pass.
-
 if __name__ == "__main__":
     print("\n" + "="*70)
     print("LAB 2 STUDENT BUILD — SQL Safety Graph")
