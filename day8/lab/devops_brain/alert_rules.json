@@ -1,64 +1,64 @@
 {
   "CRITICAL": [
     {
-      "name": "data_freshness_exceeded",
+      "name": "data_freshness_breach",
       "condition": "Pipeline has not run in more than 24 hours",
       "threshold": "24",
-      "message": "The data pipeline has not run in over 24 hours. Stale data may lead to incorrect financial reports.",
+      "message": "The data pipeline has not run in over 24 hours, leading to stale data.",
       "recommended_action": "Investigate and restart the pipeline immediately."
     },
     {
-      "name": "data_quality_below_threshold",
+      "name": "data_quality_breach",
       "condition": "Data quality percentage is below 99.9%",
       "threshold": "99.9",
-      "message": "The data quality percentage is below the required 99.9%. Low-quality data can result in erroneous financial insights.",
-      "recommended_action": "Investigate and resolve data quality issues immediately."
+      "message": "Data quality has fallen below the 99.9% threshold, risking erroneous financial reports.",
+      "recommended_action": "Check data quality issues and correct them as a priority."
     },
     {
       "name": "row_count_out_of_bounds",
       "condition": "Row count is outside the bounds of 17 to 25",
       "threshold": "17, 25",
-      "message": "The row count is outside the acceptable bounds of 17 to 25. This may impact data completeness.",
-      "recommended_action": "Investigate and ensure data completeness."
+      "message": "The row count is outside the expected bounds of 17 to 25, affecting data completeness.",
+      "recommended_action": "Investigate the cause of the row count being out of bounds."
     }
   ],
   "WARNING": [
     {
       "name": "runtime_approaching_limit",
-      "condition": "Pipeline runtime is approaching 120 minutes",
+      "condition": "Pipeline runtime is approaching the 120-minute limit",
       "threshold": "120",
-      "message": "The pipeline runtime is approaching the 120-minute limit. This may delay the morning dashboard update.",
-      "recommended_action": "Monitor the pipeline runtime and optimize if necessary."
+      "message": "The pipeline runtime is approaching the 120-minute limit, which may delay the dashboard update.",
+      "recommended_action": "Optimize the pipeline to reduce runtime."
     },
     {
-      "name": "data_quality_slightly_below",
+      "name": "data_quality_slightly_below_threshold",
       "condition": "Data quality percentage is slightly below 99.9%",
       "threshold": "99.85",
-      "message": "The data quality percentage is slightly below 99.9%. Investigate to prevent potential issues.",
-      "recommended_action": "Investigate and address any potential data quality issues."
+      "message": "Data quality is slightly below the 99.9% threshold, which may lead to minor inaccuracies.",
+      "recommended_action": "Monitor data quality and identify the cause of the slight drop."
     },
     {
-      "name": "merchant_failure_spike",
+      "name": "merchant_failure_rate_spike",
       "condition": "One merchant's failure rate spikes above 30%",
       "threshold": "30",
-      "message": "One merchant's failure rate has spiked above 30%. Investigate the cause.",
-      "recommended_action": "Investigate and resolve the issue with the merchant's data processing."
+      "message": "A merchant's failure rate has spiked above 30%, which may indicate a processing issue.",
+      "recommended_action": "Investigate the cause of the failure rate spike for the affected merchant."
     }
   ],
   "INFO": [
     {
-      "name": "new_payment_method",
+      "name": "new_payment_method_detected",
       "condition": "A new payment method is detected in the data",
-      "threshold": "N/A",
-      "message": "A new payment method has been detected in the data. Log this for future reference.",
-      "recommended_action": "Log the new payment method for future reference."
+      "threshold": "new_payment_method",
+      "message": "A new payment method has been detected in the data.",
+      "recommended_action": "Verify the new payment method and update the system if necessary."
     },
     {
       "name": "row_count_near_bounds",
       "condition": "Daily row count is near the bounds of 17 to 25",
       "threshold": "17, 25",
-      "message": "The daily row count is near the bounds of 17 to 25. This is within acceptable limits.",
-      "recommended_action": "Monitor the row count to ensure it remains within bounds."
+      "message": "The daily row count is near the bounds of 17 to 25, but within acceptable limits.",
+      "recommended_action": "Monitor the row count to ensure it remains within the bounds."
     }
   ]
 }

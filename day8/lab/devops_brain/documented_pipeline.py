@@ -26,7 +26,7 @@ def setup_tables(con: duckdb.DuckDBPyConnection) -> None:
     """Sets up the necessary tables in the DuckDB database.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
     """
     con.execute("""
         CREATE TABLE IF NOT EXISTS bronze_transactions (
@@ -88,10 +88,10 @@ def setup_tables(con: duckdb.DuckDBPyConnection) -> None:
     """)
 
 def load_merchants(con: duckdb.DuckDBPyConnection) -> None:
-    """Loads merchant data into the 'merchants' table.
+    """Loads merchant data into the merchants table.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
     """
     for m in MERCHANTS:
         try:
@@ -100,13 +100,13 @@ def load_merchants(con: duckdb.DuckDBPyConnection) -> None:
                 [m["merchant_id"], m["merchant_name"], m["category"], m["city"]]
             )
         except:
-            pass
+            pass  # BUG: Bare except clause
 
 def load_bronze(con: duckdb.DuckDBPyConnection, transactions: list) -> None:
-    """Loads transaction data into the 'bronze_transactions' table.
+    """Loads transaction data into the bronze_transactions table.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
         transactions (list): A list of transaction dictionaries.
     """
     for txn in transactions:
@@ -119,10 +119,10 @@ def load_bronze(con: duckdb.DuckDBPyConnection, transactions: list) -> None:
     print(f"Bronze loaded: {len(transactions)} records")
 
 def get_merchants_by_category(con: duckdb.DuckDBPyConnection, category: str) -> list:
-    """Retrieves merchants by category from the 'merchants' table.
+    """Retrieves merchants by category from the merchants table.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
         category (str): The category to filter merchants by.
 
     Returns:
@@ -131,7 +131,7 @@ def get_merchants_by_category(con: duckdb.DuckDBPyConnection, category: str) -> 
     Raises:
         ValueError: If the category is not a string.
     """
-    if not isinstance(category, str):
+    if not isinstance(category, str):  # BUG: Missing null check
         raise ValueError("Category must be a string")
     query = f"SELECT * FROM merchants WHERE category = '{category}'"  # BUG: SQL injection risk
     return con.execute(query).fetchall()
@@ -169,7 +169,7 @@ def transform_bronze_to_silver(transactions: list, merchants: list) -> list:
             city = merchant["city"]
             quality_flag = "CLEAN"
         except:
-            pass
+            pass  # BUG: Bare except clause
 
         row = {
             "transaction_id": txn["transaction_id"],
@@ -188,10 +188,10 @@ def transform_bronze_to_silver(transactions: list, merchants: list) -> list:
     return silver
 
 def load_silver(con: duckdb.DuckDBPyConnection, silver_rows: list) -> None:
-    """Loads silver transaction data into the 'silver_transactions' table.
+    """Loads silver transactions into the silver_transactions table.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
         silver_rows (list): A list of silver transaction dictionaries.
     """
     for row in silver_rows:
@@ -277,7 +277,7 @@ def load_gold(con: duckdb.DuckDBPyConnection, merchant_perf: list, daily_summary
     """Loads merchant performance and daily summary data into gold tables.
 
     Args:
-        con (duckdb.DuckDBPyConnection): The DuckDB connection object.
+        con (duckdb.DuckDBPyConnection): The database connection object.
         merchant_perf (list): A list of merchant performance dictionaries.
         daily_summary (list): A list of daily summary dictionaries.
     """

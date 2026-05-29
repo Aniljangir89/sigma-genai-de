@@ -36,7 +36,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # Install the required Python dependencies for the project
+      # Install the required Python dependencies
       - name: Install dependencies
         run: pip install duckdb pytest pytest-cov ruff pandas
 
@@ -48,7 +48,7 @@ jobs:
       - name: Set up local DuckDB
         run: python day8/lab/0_setup_duckdb.py
 
-      # Run the pytest suite to ensure the pipeline functions correctly
+      # Run the pytest suite to verify the pipeline functions
       - name: Run pytest
         run: pytest day8/lab/devops_brain/test_pipeline.py -v --tb=short
 

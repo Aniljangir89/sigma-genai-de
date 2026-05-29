@@ -8,7 +8,7 @@
         "max_value": 30
       },
       "meta": {
-        "notes": "Ensure the number of rows is within the expected range after the Bronze -> Silver transformation."
+        "notes": "Ensure the row count is within the expected range after Bronze -> Silver transform."
       }
     },
     {
@@ -17,7 +17,7 @@
         "column": "transaction_id"
       },
       "meta": {
-        "notes": "Transaction ID must not be null after filtering in Bronze."
+        "notes": "All transaction_ids must be non-null."
       }
     },
     {
@@ -26,7 +26,7 @@
         "column": "amount"
       },
       "meta": {
-        "notes": "Amount must not be null after filtering in Bronze."
+        "notes": "All amounts must be non-null."
       }
     },
     {
@@ -35,7 +35,7 @@
         "column": "status"
       },
       "meta": {
-        "notes": "Status must not be null."
+        "notes": "All statuses must be non-null."
       }
     },
     {
@@ -44,7 +44,7 @@
         "column": "transaction_date"
       },
       "meta": {
-        "notes": "Transaction date must not be null."
+        "notes": "All transaction dates must be non-null."
       }
     },
     {
@@ -54,7 +54,7 @@
         "min_value": 0
       },
       "meta": {
-        "notes": "Amount must be greater than or equal to 0 after filtering in Bronze."
+        "notes": "All amounts must be greater than or equal to 0."
       }
     },
     {
@@ -63,7 +63,7 @@
         "column": "transaction_id"
       },
       "meta": {
-        "notes": "Transaction IDs must be unique."
+        "notes": "No duplicate transaction_ids should exist."
       }
     },
     {
@@ -94,7 +94,7 @@
         "max_value": 5000
       },
       "meta": {
-        "notes": "The mean of the amount column should be between 100 and 5000."
+        "notes": "The mean of the amounts should be between 100 and 5000."
       }
     }
   ],

@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
 import logging
 import json
 
@@ -12,37 +12,36 @@ default_args = {
 }
 
 def on_failure_callback(context):
+    """Logs failure details."""
     dag_id = context['dag'].dag_id
-    task_id = context['task'].task_id
+    task_id = context['task_instance'].task_id
     execution_date = context['execution_date']
     error_message = context['exception']
     logging.error(f"DAG: {dag_id}, Task: {task_id}, Execution Date: {execution_date}, Error: {error_message}")
 
 def sla_miss_callback(context):
+    """Sends alert for SLA miss."""
     dag_id = context['dag'].dag_id
     execution_date = context['execution_date']
-    logging.warning(f"DAG: {dag_id}, Execution Date: {execution_date} has missed its SLA")
+    logging.warning(f"DAG: {dag_id}, Execution Date: {execution_date}, SLA Miss")
 
 def extract_bronze(**context):
-    """Ingest raw CSVs to Bronze Parquet"""
+    """Ingest raw CSVs to Bronze Parquet."""
     logging.info("Starting extract_bronze task")
-    # Placeholder for actual logic
+    # Add your code here
     logging.info("Ending extract_bronze task")
-    raise Exception("Placeholder failure")
 
 def transform_silver(**context):
-    """Clean, enrich, deduplicate to Silver"""
+    """Clean, enrich, deduplicate to Silver."""
     logging.info("Starting transform_silver task")
-    # Placeholder for actual logic
+    # Add your code here
     logging.info("Ending transform_silver task")
-    raise Exception("Placeholder failure")
 
 def build_gold(**context):
-    """Generate the 3 Gold aggregation tables"""
+    """Generate the 3 Gold aggregation tables."""
     logging.info("Starting build_gold task")
-    # Placeholder for actual logic
+    # Add your code here
     logging.info("Ending build_gold task")
-    raise Exception("Placeholder failure")
 
 with DAG(
     dag_id='sigma_transaction_pipeline',
@@ -52,7 +51,7 @@ with DAG(
     default_args=default_args,
     on_failure_callback=on_failure_callback,
     sla_miss_callback=sla_miss_callback,
-    tags=["sigma", "transactions", "daily"],
+    tags=['sigma', 'transactions', 'daily'],
     description="Daily Bronze->Silver->Gold pipeline for Sigma DataTech transactions"
 ) as dag:
 
