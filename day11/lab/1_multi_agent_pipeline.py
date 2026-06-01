@@ -105,22 +105,22 @@ def supervisor_route(task: dict) -> dict:
     agent_list = "\n".join([f"- {name}: {desc}" for name, desc in AGENTS.items()])
     prompt = f"""You are a data platform supervisor at Sigma DataTech.
 
-Available specialist agents:
-{agent_list}
+    Available specialist agents:
+    {agent_list}
 
-Incoming task:
-  Task ID  : {task['id']}
-  Type     : {task['type']}
-  File     : {task['file']}
-  Row count: {task['rows']}
+    Incoming task:
+    Task ID  : {task['id']}
+    Type     : {task['type']}
+    File     : {task['file']}
+    Row count: {task['rows']}
 
-Respond in JSON only (no markdown, no explanation):
-{{
-  "task_id": "{task['id']}",
-  "assigned_agents": ["AgentName1", "AgentName2"],
-  "execution_order": "parallel or sequential",
-  "reasoning": "one sentence why"
-}}"""
+    Respond in JSON only (no markdown, no explanation):
+    {{
+    "task_id": "{task['id']}",
+    "assigned_agents": ["AgentName1", "AgentName2"],
+    "execution_order": "parallel or sequential",
+    "reasoning": "one sentence why"
+    }}"""
 
     response = call_bedrock(prompt)
     # Parse JSON robustly

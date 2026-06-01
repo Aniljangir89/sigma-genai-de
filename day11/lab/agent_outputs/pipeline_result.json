@@ -1,0 +1,163 @@
+{
+  "pattern": "sequential_pipeline",
+  "timestamp": "2026-06-01T11:54:51.778483",
+  "input_file": {
+    "filename": "transactions_raw.csv",
+    "row_count": 500,
+    "columns": [
+      "transaction_id",
+      "merchant_name",
+      "category",
+      "amount",
+      "currency",
+      "transaction_date",
+      "status",
+      "customer_id",
+      "payment_method",
+      "merchant_city"
+    ],
+    "sample_issues": [
+      "4 blank transaction_ids",
+      "7 null amounts",
+      "3 negative amounts",
+      "2 invalid dates",
+      "1 unknown currency"
+    ]
+  },
+  "stages": [
+    {
+      "completeness_percentage": 95.6,
+      "key_issues": {
+        "blank_transaction_ids": 4,
+        "null_amounts": 7,
+        "negative_amounts": 3,
+        "invalid_dates": 2,
+        "unknown_currency": 1
+      },
+      "recommended_next_action": "Investigate and rectify the blank transaction_ids, null and negative amounts, invalid dates, and unknown currency. Validate the data before proceeding to the next stage.",
+      "pass_to_next": {
+        "filename": "transactions_raw.csv",
+        "row_count": 500,
+        "columns": [
+          "transaction_id",
+          "merchant_name",
+          "category",
+          "amount",
+          "currency",
+          "transaction_date",
+          "status",
+          "customer_id",
+          "payment_method",
+          "merchant_city"
+        ],
+        "sample_issues": [
+          "4 blank transaction_ids",
+          "7 null amounts",
+          "3 negative amounts",
+          "2 invalid dates",
+          "1 unknown currency"
+        ],
+        "completeness_percentage": 95.6
+      },
+      "_stage": "Profile",
+      "_agent": "Profiler Agent",
+      "_timestamp": "2026-06-01T11:54:47.970031"
+    },
+    {
+      "findings": [
+        {
+          "rule": "No blank transaction_ids",
+          "classification": "block-load",
+          "description": "Blank transaction_ids can lead to data integrity issues and inability to track transactions."
+        },
+        {
+          "rule": "No negative amounts",
+          "classification": "block-load",
+          "description": "Negative amounts are not valid for financial transactions and can cause financial discrepancies."
+        },
+        {
+          "rule": "All dates must be valid",
+          "classification": "block-load",
+          "description": "Invalid dates can lead to incorrect time-series analysis and reporting."
+        }
+      ],
+      "pass_to_next": {
+        "filename": "transactions_raw.csv",
+        "row_count": 500,
+        "columns": [
+          "transaction_id",
+          "merchant_name",
+          "category",
+          "amount",
+          "currency",
+          "transaction_date",
+          "status",
+          "customer_id",
+          "payment_method",
+          "merchant_city"
+        ],
+        "sample_issues": [
+          "4 blank transaction_ids",
+          "7 null amounts",
+          "3 negative amounts",
+          "2 invalid dates",
+          "1 unknown currency"
+        ],
+        "completeness_percentage": 95.6,
+        "resolved_issues": {
+          "blank_transaction_ids": "block-load",
+          "negative_amounts": "block-load",
+          "invalid_dates": "block-load"
+        },
+        "pending_issues": {
+          "null_amounts": "quarantine",
+          "unknown_currency": "quarantine"
+        }
+      },
+      "_stage": "Validate",
+      "_agent": "Quality Agent",
+      "_timestamp": "2026-06-01T11:54:50.162050"
+    },
+    {
+      "load_decision": "quarantined_partial",
+      "findings": {
+        "blank_transaction_ids": "block-load",
+        "null_amounts": "quarantine",
+        "negative_amounts": "block-load",
+        "invalid_dates": "block-load",
+        "unknown_currency": "quarantine"
+      },
+      "pass_to_next": {
+        "filename": "transactions_raw.csv",
+        "row_count": 500,
+        "columns": [
+          "transaction_id",
+          "merchant_name",
+          "category",
+          "amount",
+          "currency",
+          "transaction_date",
+          "status",
+          "customer_id",
+          "payment_method",
+          "merchant_city"
+        ],
+        "completeness_percentage": 95.6,
+        "resolved_issues": {
+          "blank_transaction_ids": "block-load",
+          "negative_amounts": "block-load",
+          "invalid_dates": "block-load"
+        },
+        "pending_issues": {
+          "null_amounts": "quarantine",
+          "unknown_currency": "quarantine"
+        }
+      },
+      "_stage": "LoadDecision",
+      "_agent": "Loader Agent",
+      "_timestamp": "2026-06-01T11:54:51.777588"
+    }
+  ],
+  "final_decision": "quarantined_partial",
+  "student_judgment": "The biggest problem is wasted time and inefficiency."
+}
