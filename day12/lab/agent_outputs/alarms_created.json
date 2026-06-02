@@ -1,0 +1,25 @@
+{
+  "alarms": [
+    {
+      "alert_name": "sigma-snowflake-zero-load",
+      "description": "Fires if Snowflake ingestion loads zero rows for consecutive intervals.",
+      "metric": "SnowflakeRowsLoaded",
+      "threshold": 1,
+      "severity": "HIGH"
+    },
+    {
+      "alert_name": "sigma-lambda-version-change",
+      "description": "Fires when deployment-related Lambda failures spike suddenly.",
+      "metric": "LambdaVersionChange",
+      "threshold": 1,
+      "severity": "HIGH"
+    },
+    {
+      "alert_name": "sigma-pipeline-row-divergence",
+      "description": "Fires when Event Hub events diverge significantly from Snowflake loaded rows.",
+      "metric": "PipelineRowDivergence",
+      "threshold": 5,
+      "severity": "HIGH"
+    }
+  ]
+}

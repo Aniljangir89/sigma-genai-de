@@ -41,6 +41,7 @@ desktop.ini
 .pytest_cache/
 *.log
 node_modules/
+day12/lab/azure_functions/local.settings.json
 
 .vercel
 .env*

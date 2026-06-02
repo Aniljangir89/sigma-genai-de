@@ -1,0 +1,73 @@
+{
+  "severity": "HIGH",
+  "detection_ts": "2026-06-04T09:03:00+00:00",
+  "summary": "Azure Function deployment introduced schema drift. 847 transactions were not loaded to Snowflake. \u20b94,72,340 GMV went missing. QuickMart SLA breached. Pipeline restored autonomously in 26 seconds.",
+  "forensics": {
+    "root_cause_hypothesis": "Azure Function 'eventhub_consumer' was auto-deployed to v2 at 02:11 UTC. v2 renamed the field 'merchant_name' \u2192 'merchant_nm' and changed the date format from YYYY-MM-DD to DD-MM-YYYY. Snowflake COPY INTO ran on malformed JSON and silently loaded 0 rows. No alarm existed for zero-row loads.",
+    "failure_window": "02:11 UTC \u2013 02:15 UTC",
+    "deployment_version": "v2",
+    "root_cause": "Schema mismatch due to field rename + date format change",
+    "anomaly_window": {
+      "detected_at": "2026-06-04T02:12:00+00:00",
+      "trigger": "Azure Function deployment v2",
+      "correlation": "Deployment changed schema \u2192 Event Hub records malformed \u2192 Snowflake rejected rows"
+    }
+  },
+  "impact": {
+    "records_missing": 847,
+    "gmv_gap_inr": "\u20b94,72,340",
+    "merchants_affected": 12,
+    "sla_breach": "QuickMart (\u20b91,21,450 missing \u2014 threshold \u20b950,000)"
+  },
+  "recovery": {
+    "rows_loaded": 824,
+    "quarantined_count": 23,
+    "status": "SUCCESS",
+    "idempotency_key": "transaction_id",
+    "duplicates_found": 0
+  },
+  "rollback": {
+    "status": "SUCCESS",
+    "rolled_back_to": "v1",
+    "duration_seconds": 8
+  },
+  "hardening": {
+    "alarms_created": [
+      {
+        "alert_name": "sigma-snowflake-zero-load"
+      },
+      {
+        "alert_name": "sigma-lambda-version-change"
+      },
+      {
+        "alert_name": "sigma-pipeline-row-divergence"
+      }
+    ]
+  },
+  "agent_performance": [
+    {
+      "agent": "Forensics",
+      "duration_sec": 4
+    },
+    {
+      "agent": "Impact",
+      "duration_sec": 5
+    },
+    {
+      "agent": "Recovery",
+      "duration_sec": 7
+    },
+    {
+      "agent": "Rollback",
+      "duration_sec": 8
+    },
+    {
+      "agent": "Hardening",
+      "duration_sec": 5
+    },
+    {
+      "agent": "IncidentReport",
+      "duration_sec": 3
+    }
+  ]
+}
