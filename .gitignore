@@ -24,11 +24,17 @@ snowflake_config.json
 Thumbs.db
 desktop.ini
 
+# DuckDB — generated locally by 0_setup_duckdb.py
+*.duckdb
+*.duckdb.wal
+
 # Large generated files
 *.pptx
 *.xlsx
 *.docx
 ~$*
+
+
 
 # Temporary
 *.tmp
@@ -36,3 +42,6 @@ desktop.ini
 *.log
 node_modules/
 day12/lab/azure_functions/local.settings.json
+
+.vercel
+.env*

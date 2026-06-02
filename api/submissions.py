@@ -1,0 +1,358 @@
+from http.server import BaseHTTPRequestHandler
+import json
+import os
+import csv
+import urllib.request
+import urllib.error
+from datetime import datetime, timezone, timedelta
+
+# ── Master tier: core = green tick, core+extra = gold crown ──────────────────
+MASTER_TIER = {
+    7: {
+        "core": [
+            "pipeline_brain/generated_pipeline.py",
+            "pipeline_brain/sigma_dag.py",
+            "pipeline_brain/hardened_pipeline.py",
+        ],
+        "extra": [
+            "pipeline_brain/schema_drift_report.json",
+            "pipeline_brain/code_review.json",
+        ],
+    },
+    8: {
+        "core": [
+            "devops_brain/code_review_report.json",
+            "devops_brain/doc_report.json",
+            "devops_brain/testing_report.json",
+            "devops_brain/ci_slo_report.json",
+            "devops_brain/observability_report.json",
+        ],
+        "extra": [
+            "devops_brain/competitive/scorecard.json",   # 6_competitive_build.py
+        ],
+    },
+    9: {
+        # ✅ green tick  = Soda + CompBuild + LLM Observability done
+        "core": [
+            "output/soda_lab_success.json",
+            "output/competitive_scorecard.json",
+            "output/llm_observability_success.json",
+        ],
+        # 👑 gold crown  = above 3 + OpenMetadata
+        "extra": [
+            "output/openmetadatalab.json",
+        ],
+    },
+}
+
+# Days where the lab folder is named differently from the default "lab"
+DAY_LAB_FOLDER = {
+    9: "labs",   # repo/day9/labs/output/... (plural)
+}
+
+EXPECTED_FILES = {
+    6: {
+        "review_report.json": "SQL Review",
+        "nl2sql_audit.json": "NL2SQL",
+        "sigma_dbt/models/staging/stg_transactions.sql": "dbt",
+    },
+    7: {
+        "pipeline_brain/generated_pipeline.py": "Pipeline",
+        "pipeline_brain/sigma_dag.py": "DAG",
+        "pipeline_brain/hardened_pipeline.py": "Hardened",
+        "pipeline_brain/schema_drift_report.json": "SchemaDrift",
+        "pipeline_brain/code_review.json": "Review",
+    },
+    8: {
+        "devops_brain/code_review_report.json":    "Review",
+        "devops_brain/doc_report.json":            "Docs",
+        "devops_brain/testing_report.json":        "Tests",
+        "devops_brain/ci_slo_report.json":         "CI/SLO",
+        "devops_brain/observability_report.json":  "Observe",
+        "devops_brain/competitive/scorecard.json": "CompBuild",
+    },
+    9: {
+        "output/soda_lab_success.json":          "Soda",
+        "output/competitive_scorecard.json":     "CompBuild",
+        "output/llm_observability_success.json": "LLM-Obs",
+        "output/openmetadatalab.json":           "OpenMeta",
+    },
+}
+
+
+def load_manual_overrides():
+    """Load manual_overrides.json — used for days with no GitHub file submissions."""
+    path = os.path.join(os.path.dirname(__file__), 'manual_overrides.json')
+    try:
+        with open(path, encoding='utf-8') as f:
+            data = json.load(f)
+        result = {}
+        for k, v in data.items():
+            if k.startswith('_'):
+                result[k] = v
+            else:
+                try:
+                    result[int(k)] = v
+                except ValueError:
+                    result[k] = v
+        return result
+    except FileNotFoundError:
+        return {}
+
+
+def load_students():
+    """Load github_username -> real_name mapping from students.csv."""
+    mapping = {}
+    csv_path = os.path.join(os.path.dirname(__file__), 'students.csv')
+    try:
+        with open(csv_path, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                username = row.get('github_username', '').strip()
+                name = row.get('real_name', '').strip()
+                if username:
+                    mapping[username] = name if name else username
+    except FileNotFoundError:
+        pass
+    return mapping
+
+
+def github_get(url, token):
+    """Authenticated GET to GitHub API. Returns (status_code, body_dict_or_None)."""
+    req = urllib.request.Request(url)
+    req.add_header('Authorization', f'token {token}')
+    req.add_header('User-Agent', 'sigma-dashboard')
+    req.add_header('Accept', 'application/vnd.github.v3+json')
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+            return resp.status, body
+    except urllib.error.HTTPError as e:
+        return e.code, None
+    except Exception:
+        return 0, None
+
+
+def get_all_forks(owner, repo, token):
+    """Fetch all forks with pagination."""
+    forks = []
+    page = 1
+    while True:
+        url = f'https://api.github.com/repos/{owner}/{repo}/forks?per_page=100&page={page}'
+        status, body = github_get(url, token)
+        if status != 200 or not body:
+            break
+        forks.extend(body)
+        if len(body) < 100:
+            break
+        page += 1
+    return forks
+
+
+def get_fork_file_tree(fork_owner, fork_repo, token):
+    """Fetch all file paths in the fork's default branch in one API call.
+    Returns a set of lowercase paths, or None if the call failed."""
+    url = f'https://api.github.com/repos/{fork_owner}/{fork_repo}/git/trees/HEAD?recursive=1'
+    status, body = github_get(url, token)
+    if status != 200 or not body or 'tree' not in body:
+        return None
+    return {item['path'].lower() for item in body['tree'] if item.get('type') == 'blob'}
+
+
+def compute_status(files_found, day_num=None):
+    """Convert a dict of {filename: bool} to a status string."""
+    if not files_found:
+        return "missing"
+    values = list(files_found.values())
+    if not any(values):
+        return "missing"
+
+    if day_num in MASTER_TIER:
+        tier = MASTER_TIER[day_num]
+        core_done  = all(files_found.get(f, False) for f in tier["core"])
+        extra_done = all(files_found.get(f, False) for f in tier["extra"])
+        if core_done and extra_done:
+            return "master"
+        if core_done:
+            return "complete"
+        if any(values):
+            return "partial"
+        return "missing"
+
+    if all(values):
+        return "complete"
+    return "partial"
+
+
+def ist_now():
+    """Return current time as a formatted IST string."""
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(ist)
+    return now.strftime('%Y-%m-%d %H:%M IST')
+
+
+def build_response():
+    """Core logic: hit GitHub API and return the dashboard data dict."""
+    token = os.environ.get('GITHUB_TOKEN', '')
+    trainer_repo = os.environ.get('TRAINER_REPO', 'Anilmidna/sigma-genai-de')
+
+    if not token:
+        return {
+            "error": "GITHUB_TOKEN environment variable is not set.",
+            "days": [],
+            "students": [],
+            "refreshed_at": ist_now(),
+        }
+
+    parts = trainer_repo.split('/')
+    if len(parts) != 2:
+        return {
+            "error": f"TRAINER_REPO must be in 'owner/repo' format, got: {trainer_repo}",
+            "days": [],
+            "students": [],
+            "refreshed_at": ist_now(),
+        }
+
+    owner, repo = parts[0], parts[1]
+    name_map   = load_students()
+    overrides  = load_manual_overrides()
+    manual_days = set(overrides.get('_manual_days', []))
+    day_labels  = overrides.get('_day_labels', {})
+
+    # All days = GitHub-tracked days + any manual-only days
+    all_days = sorted(set(EXPECTED_FILES.keys()) | manual_days)
+
+    forks = get_all_forks(owner, repo, token)
+
+    known_usernames_lower = {u.lower(): u for u in name_map.keys()}
+    students_data = []
+    seen_real_names = set()
+
+    for fork in forks:
+        fork_owner = fork.get('owner', {}).get('login', '')
+        fork_repo  = fork.get('name', '')
+        if not fork_owner or not fork_repo:
+            continue
+
+        canonical = known_usernames_lower.get(fork_owner.lower(), fork_owner)
+        real_name = name_map.get(canonical, fork_owner)
+
+        if real_name in seen_real_names:
+            continue
+        seen_real_names.add(real_name)
+
+        tree = get_fork_file_tree(fork_owner, fork_repo, token)
+
+        student_entry = {
+            "github": fork_owner,
+            "real_name": real_name,
+        }
+
+        for day_num in all_days:
+            # ── Manual day: skip GitHub, use override JSON ──────────────
+            if day_num in manual_days:
+                day_overrides = overrides.get(day_num, {})
+                matched_status = None
+                for override_name, override_status in day_overrides.items():
+                    if override_name.lower() == real_name.lower():
+                        matched_status = override_status
+                        break
+                student_entry[f'day{day_num}'] = {
+                    "status": matched_status or "missing",
+                    "files": {},
+                    "manual": True,
+                    "label": day_labels.get(str(day_num), f"Day {day_num}"),
+                }
+                continue
+
+            # ── GitHub-tracked day: check file tree ─────────────────────
+            if day_num not in EXPECTED_FILES:
+                continue
+            file_specs = EXPECTED_FILES[day_num]
+            lab_folder = DAY_LAB_FOLDER.get(day_num, "lab")
+            files_found = {}
+            for rel_path, label in file_specs.items():
+                full_path = f'day{day_num}/{lab_folder}/{rel_path}'.lower()
+                exists = (full_path in tree) if tree is not None else False
+                files_found[rel_path] = exists
+
+            student_entry[f'day{day_num}'] = {
+                "status": compute_status(files_found, day_num),
+                "files": files_found,
+            }
+
+        students_data.append(student_entry)
+
+    # Add students in manual_overrides who have no fork yet
+    if manual_days:
+        override_day = next(iter(manual_days))
+        day_overrides = overrides.get(override_day, {})
+        for override_name in day_overrides:
+            if override_name in seen_real_names:
+                continue
+            github_user = next(
+                (gh for gh, rn in name_map.items() if rn.lower() == override_name.lower()),
+                override_name
+            )
+            entry = {"github": github_user, "real_name": override_name}
+            for day_num in all_days:
+                if day_num in manual_days:
+                    dov = overrides.get(day_num, {})
+                    st = next(
+                        (s for n, s in dov.items() if n.lower() == override_name.lower()),
+                        "missing"
+                    )
+                    entry[f'day{day_num}'] = {
+                        "status": st, "files": {}, "manual": True,
+                        "label": day_labels.get(str(day_num), f"Day {day_num}"),
+                    }
+                else:
+                    entry[f'day{day_num}'] = {"status": "missing", "files": {}}
+            students_data.append(entry)
+            seen_real_names.add(override_name)
+
+    # Sort: master first, then complete, partial, missing; ties by name
+    rank = {"master": 0, "complete": 1, "partial": 2, "missing": 3}
+
+    def sort_key(s):
+        total_complete = sum(
+            1 for d in all_days
+            if s.get(f'day{d}', {}).get('status') in ('complete', 'master')
+        )
+        worst = max(
+            (rank.get(s.get(f'day{d}', {}).get('status', 'missing'), 2) for d in all_days),
+            default=2
+        )
+        return (worst, -total_complete, s.get('real_name', '').lower())
+
+    students_data.sort(key=sort_key)
+
+    return {
+        "days": all_days,
+        "students": students_data,
+        "refreshed_at": ist_now(),
+    }
+
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        data = build_response()
+        body = json.dumps(data, indent=2).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass

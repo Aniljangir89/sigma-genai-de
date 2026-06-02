@@ -1,20 +1,7 @@
-WITH raw_transactions AS (
-    SELECT 
-        transaction_id,
-        amount,
-        status,
-        merchant_id,
-        customer_id,
-        transaction_date,
-        payment_method
-    FROM 
-        {{ source('sigma_analytics', 'fact_transactions') }}
-),
-
-cleaned_transactions AS (
-    SELECT 
+WITH cleaned_transactions AS (
+    SELECT
         LOWER(transaction_id) AS transaction_id,
-        CAST(amount AS DECIMAL(10,2)) AS amount,
+        CAST(amount AS DECIMAL(10, 2)) AS amount,
         LOWER(status) AS status,
         LOWER(merchant_id) AS merchant_id,
         LOWER(customer_id) AS customer_id,
@@ -22,9 +9,9 @@ cleaned_transactions AS (
         LOWER(payment_method) AS payment_method,
         CURRENT_TIMESTAMP AS loaded_at
     FROM 
-        raw_transactions
+        {{ source('sigma_analytics', 'fact_transactions') }}
     WHERE 
-        merchant_id NOT LIKE 'test_%'
+        merchant_id NOT LIKE 'TEST_%'
 )
 
 SELECT * FROM cleaned_transactions
@@ -51,20 +38,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["completed", "failed", "pending"]
+              values: ['completed', 'failed', 'pending']
       - name: merchant_id
-        description: "Unique identifier for the merchant."
+        description: "Foreign key referencing dim_merchant."
         tests:
           - not_null
           - relationships:
-              to: sigma_analytics.dim_merchant
+              to: ref('dim_merchant')
               field: merchant_id
       - name: customer_id
-        description: "Unique identifier for the customer."
+        description: "Foreign key referencing dim_customer."
         tests:
           - not_null
           - relationships:
-              to: sigma_analytics.dim_customer
+              to: ref('dim_customer')
               field: customer_id
       - name: transaction_date
         description: "Date of the transaction."
@@ -75,8 +62,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["credit_card", "debit_card", "upi"]
+              values: ['credit_card', 'debit_card', 'upi']
       - name: loaded_at
-        description: "Timestamp when the data was loaded into the staging table."
+        description: "Timestamp when the data was loaded."
         tests:
           - not_null
